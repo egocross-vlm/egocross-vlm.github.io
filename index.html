@@ -1,392 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EgoCross-VLM: Decoding Pedestrian Crossing Intention from Egocentric Vision</title>
-  <meta name="description" content="We study pedestrian crossing intention prediction from egocentric video using vision-language models (VLMs), achieving a 14.5% accuracy improvement over the transformer baseline via fine-tuning and gaze integration.">
-  <meta property="og:title" content="EgoCross-VLM: Pedestrian Crossing Intention from Egocentric Vision">
-  <meta property="og:description" content="Fine-tuned VLMs outperform specialist baselines by 14.5% on egocentric pedestrian intent decoding.">
-  <meta property="og:image" content="Figures/goodex.png">
-  <meta property="og:type" content="website">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EgoCross-VLM — Pedestrian crossing intention from the pedestrian's own view</title>
+<meta name="description" content="Decoding pedestrian crossing intention in interactions with automated vehicles from egocentric video with vision language models. Interactive results: which pedestrian-side cues carry signal, and when.">
+<meta property="og:title" content="EgoCross-VLM: crossing intention from the pedestrian's own view">
+<meta property="og:description" content="Vision language models predict cross vs. yield one second ahead from first-person video. Ego motion helps untrained; eye gaze becomes the most valuable cue after fine-tuning.">
+<meta property="og:image" content="Figures/pipeline-horizontal.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='%23B3121B'/></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ===== NAVIGATION ===== -->
-<nav class="navbar">
-  <div class="container">
-    <span class="nav-brand">EgoCross-VLM</span>
-    <div class="nav-links">
-      <a href="#abstract">Abstract</a>
-      <a href="#method">Method</a>
-      <a href="#results">Results</a>
-      <a href="#qualitative">Examples</a>
-      <a href="#citation">Citation</a>
+<header class="topbar">
+  <a class="brand" href="#top">EgoCross-VLM</a>
+  <nav class="topnav" aria-label="Sections">
+    <a href="#why">Why</a>
+    <a href="#explorer">Explore</a>
+    <a href="#findings">Findings</a>
+    <a href="#implications">Implications</a>
+    <!-- <a href="#paper">Paper</a> -->
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap">
+    <!-- <p class="hero-kicker">Pedestrian behaviour prediction, seen from the pedestrian</p> -->
+    <h1 class="hero-title">Decoding pedestrian crossing intention from egocentric vision via vision language models</h1>
+
+    <div class="hero-people">
+      <p class="authors">
+        <a href="mailto:danli@dtu.dk">Danya Li</a><sup>1</sup>,
+        <a href="mailto:xiang.su@helsinki.fi">Xiang Su</a><sup>2</sup>,
+        <a href="mailto:y.feng@tudelft.nl">Yan Feng</a><sup>3</sup>,
+        <a href="mailto:rickr@dtu.dk">Rico Krueger</a><sup>1</sup>
+      </p>
+      <p class="affils">
+        <sup>1</sup>Technical University of Denmark &nbsp;
+        <sup>2</sup>University of Helsinki &nbsp;
+        <sup>3</sup>Delft University of Technology
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://arxiv.org/abs/2606.09142" target="_blank" rel="noopener">Paper</a>
+      <a class="btn" href="https://github.com/danyayay/EgoCross-VLM" target="_blank" rel="noopener">Code</a>
+      <a class="btn" href="hEARTposter.pdf" target="_blank" rel="noopener">Poster</a>
+      <a class="btn" href="#bibtex">BibTeX</a>
     </div>
   </div>
-</nav>
 
-<!-- ===== HERO ===== -->
-<section class="hero">
-  <div class="container">
-    <h1 class="hero-title">
-      Decoding Pedestrian Crossing Intention from Egocentric<br>
-      Vision via Vision Language Models
-    </h1>
-    <!-- <p class="hero-venue">Published in <em>Transportation Research Part F: Traffic Psychology and Behaviour</em></p> -->
-    <p class="hero-authors">
-      <a href="mailto:danli@dtu.dk">Danya Li</a><sup>1</sup> &middot;
-      <a href="mailto:xiang.su@helsinki.fi">Xiang Su</a><sup>2</sup> &middot;
-      <a href="mailto:y.feng@tudelft.nl">Yan Feng</a><sup>3</sup> &middot;
-      <a href="mailto:rickr@dtu.dk">Rico Krueger</a><sup>1</sup>
-    </p>
-    <p class="hero-affiliations">
-      <sup>1</sup>DTU, Denmark &nbsp;&nbsp;
-      <sup>2</sup>University of Helsinki, Finland &nbsp;&nbsp;
-      <sup>3</sup>TU Delft, Netherlands
-    </p>
-    <div class="hero-links">
-      <a href="https://github.com/danyayay/EgoCross-VLM" class="btn" target="_blank" rel="noopener">
-        <i class="fab fa-github"></i> Code
-      </a>
-      <a href="https://arxiv.org/abs/2606.09142" class="btn" target="_blank" rel="noopener">
-        <i class="fas fa-file-alt"></i> Paper
-      </a>
+</section>
+
+<section class="viewpoint-section" aria-label="Compare camera viewpoints">
+  <!-- Viewpoint switcher -->
+  <figure class="viewpoint wrap-wide" id="viewpoint">
+    <div class="viewpoint-head">
+      <div class="seg" role="tablist" aria-label="Choose a viewpoint">
+        <button class="seg-btn" role="tab" data-view="exo" aria-selected="false" id="tab-exo">From the vehicle</button>
+        <button class="seg-btn is-on" role="tab" data-view="ego" aria-selected="true" id="tab-ego">From the pedestrian</button>
+      </div>
+      <p class="viewpoint-q">Will this pedestrian <span class="chip chip-cross">cross</span> or <span class="chip chip-yield">yield</span> in the next second?</p>
     </div>
 
-    <!-- Stat cards -->
-    <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-number">+9%</div>
-        <div class="stat-label">accuracy over specialist baseline<br>(fine-tuning, video only)</div>
+    <div class="scene" data-view="ego">
+      <!-- Exocentric: vehicle-mounted camera looking at the pedestrian -->
+      <svg class="scene-svg scene-exo" viewBox="0 0 960 420" aria-labelledby="exo-title" role="img">
+        <title id="exo-title">Exocentric view: the vehicle camera sees the pedestrian as a box; their attention can only be guessed from head pose.</title>
+        <defs>
+          <linearGradient id="skyExo" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#dfe5ea"/><stop offset="1" stop-color="#eef0ee"/>
+          </linearGradient>
+        </defs>
+        <rect width="960" height="420" fill="url(#skyExo)"/>
+        <!-- buildings -->
+        <g fill="#c9d0d5">
+          <rect x="0" y="120" width="140" height="120"/><rect x="150" y="90" width="110" height="150"/>
+          <rect x="700" y="100" width="120" height="140"/><rect x="830" y="130" width="130" height="110"/>
+        </g>
+        <!-- ground -->
+        <polygon points="0,240 960,240 960,420 0,420" fill="#b9b0a4"/>
+        <polygon points="0,240 960,240 960,420 0,420" fill="url(#brick)" opacity=".35"/>
+        <!-- pedestrian silhouette -->
+        <g transform="translate(560,205)">
+          <circle cx="0" cy="0" r="14" fill="#2b3036"/>
+          <path d="M-16,20 h32 l6,60 h-12 l-4,-30 l-4,30 h-12 l-4,-30 l-4,30 h-12 l6,-60 z" fill="#2b3036"/>
+          <!-- head pose arrow -->
+          <path d="M14,-2 l30,-12" stroke="#3E5A73" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+        </g>
+        <!-- detector bounding box -->
+        <rect x="528" y="182" width="66" height="112" fill="none" stroke="#3E5A73" stroke-width="2"/>
+        <g font-family="JetBrains Mono, monospace" font-size="13" fill="#3E5A73">
+          <text x="528" y="174">pedestrian  0.91</text>
+          <text x="606" y="200">head pose → looking left?</text>
+          <text x="606" y="220" fill="#8a949c">gaze: not observable</text>
+          <text x="606" y="240" fill="#8a949c">what they saw: unknown</text>
+        </g>
+        <!-- dashboard hood -->
+        <path d="M0,420 L0,372 Q480,330 960,372 L960,420 Z" fill="#33393f"/>
+        <text x="20" y="404" font-family="JetBrains Mono, monospace" font-size="13" fill="#c9d0d5">vehicle camera · v = 2.1 m/s · decelerating</text>
+      </svg>
+
+      <!-- Egocentric: the pedestrian's own view, with gaze -->
+      <svg class="scene-svg scene-ego" viewBox="0 0 960 420" aria-labelledby="ego-title" role="img">
+        <title id="ego-title">Egocentric view: the pedestrian's own camera, with the shuttle approaching and the gaze fixation point moving between the shuttle and the crossing goal.</title>
+        <defs>
+          <linearGradient id="skyEgo" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e8ecef"/><stop offset="1" stop-color="#f1efe9"/>
+          </linearGradient>
+          <pattern id="brick" width="26" height="12" patternUnits="userSpaceOnUse">
+            <rect width="26" height="12" fill="none"/>
+            <path d="M0,6 H26 M13,0 V6 M0,6 V12 M26,6 V12" stroke="#8d6a56" stroke-width="1" opacity=".5"/>
+          </pattern>
+        </defs>
+        <rect width="960" height="420" fill="url(#skyEgo)"/>
+        <!-- buildings, converging -->
+        <g fill="#d3d8db">
+          <polygon points="0,60 210,130 210,232 0,238"/>
+          <polygon points="960,60 750,130 750,232 960,238"/>
+        </g>
+        <g fill="#c2c9cd">
+          <polygon points="210,140 330,185 330,228 210,232"/>
+          <polygon points="750,140 630,185 630,228 750,232"/>
+        </g>
+        <g fill="#8fa27e" opacity=".8"><circle cx="300" cy="150" r="26"/><circle cx="660" cy="152" r="24"/><circle cx="372" cy="176" r="16"/></g>
+        <!-- plaza ground -->
+        <polygon points="330,228 630,228 960,420 0,420" fill="#a7735c"/>
+        <polygon points="330,228 630,228 960,420 0,420" fill="url(#brick)"/>
+        <!-- crossing goal circle -->
+        <ellipse id="goal" cx="700" cy="372" rx="70" ry="16" fill="none" stroke="#f4f2ee" stroke-width="4"/>
+        <!-- shuttle, approaching from the left -->
+        <g class="shuttle">
+          <rect x="0" y="0" width="150" height="86" rx="14" fill="#2f3a44"/>
+          <rect x="10" y="12" width="130" height="34" rx="6" fill="#9fb4c4"/>
+          <rect x="0" y="56" width="150" height="8" fill="var(--ped)" opacity=".8"/>
+          <circle cx="30" cy="88" r="12" fill="#17191c"/><circle cx="120" cy="88" r="12" fill="#17191c"/>
+        </g>
+        <!-- gaze fixation dot -->
+        <circle class="gaze" r="9" fill="#E5261F" stroke="#fff" stroke-width="2"/>
+        <g font-family="JetBrains Mono, monospace" font-size="13">
+          <text x="20" y="30" fill="#4b5157">egocentric camera · 2 s window · 8 frames</text>
+          <text class="gaze-label" x="20" y="52" fill="var(--ped)">gaze: on the shuttle</text>
+          <text x="20" y="74" fill="#4b5157">ego speed 0.6 m/s · slowing</text>
+        </g>
+      </svg>
+    </div>
+
+    <figcaption class="viewpoint-cap">
+      <span class="cap-exo">A vehicle-mounted sensor gets a stable, global picture, but the pedestrian is an <em>observed</em> agent. Whether they have registered the shuttle can only be guessed from head or body pose.</span>
+      <span class="cap-ego">The pedestrian's own camera records the scene as it looked when the decision was made, plus head motion, ego speed, and, with eye tracking, the exact point of regard. We ask a vision language model to read this and answer the question above, one second ahead.</span>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ================= WHY ================= -->
+<section class="section" id="why">
+  <div class="wrap">
+    <p class="section-label">The perspective</p>
+    <h2>Why move the camera to the pedestrian</h2>
+    <p class="lede">Almost all crossing-intention prediction is exocentric. It informs the vehicle and presupposes an instrumented vehicle or roadside. Predicting from the pedestrian's own view changes not only the input but who the prediction is for.</p>
+
+    <div class="compare">
+      <div class="compare-row compare-head">
+        <div></div>
+        <div class="col-veh">Vehicle-side prediction</div>
+        <div class="col-ped">Pedestrian-side prediction</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">+14.5%</div>
-        <div class="stat-label">accuracy over specialist baseline<br>(fine-tuning + eye gaze)</div>
+      <div class="compare-row">
+        <div class="compare-k">Sensor</div>
+        <div>Vehicle camera, roadside sensor, bird's-eye view</div>
+        <div>Head-mounted camera the pedestrian already wears</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">2B</div>
-        <div class="stat-label">parameter model achieves<br>state-of-the-art performance</div>
+      <div class="compare-row">
+        <div class="compare-k">Who is warned</div>
+        <div>The vehicle</div>
+        <div>The pedestrian, on their own device</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">5</div>
-        <div class="stat-label">VLM families benchmarked<br>zero-shot &amp; fine-tuned</div>
+      <div class="compare-row">
+        <div class="compare-k">Visual attention</div>
+        <div>Inferred from head or body pose</div>
+        <div>Measured directly with eye tracking</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-k">Occlusion</div>
+        <div>Pedestrian can be hidden behind other traffic</div>
+        <div>Never occluded from their own viewpoint</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-k">Infrastructure needed</div>
+        <div>Instrumented vehicles or roadside units</div>
+        <div>None</div>
       </div>
     </div>
 
-    <figure class="hero-teaser">
-      <img src="Figures/goodex.png" alt="Egocentric video frames, gaze overlay, and model reasoning comparison">
-      <figcaption>
-        A success case: raw egocentric video (left), gaze-overlay video (center), gaze-on-screen text (right).
-        Adding eye-gaze signals leads the model to correctly anticipate <em>yield</em> — where video alone fails.
-      </figcaption>
-    </figure>
+    <div class="facts">
+      <div class="fact">
+        <div class="fact-n">1 s</div>
+        <div class="fact-t">prediction horizon, from a 2-second first-person clip</div>
+      </div>
+      <div class="fact">
+        <div class="fact-n">6,047</div>
+        <div class="fact-t">cross / yield question–answer pairs from immersive VR encounters with automated shuttles, split by participant</div>
+      </div>
+      <div class="fact">
+        <div class="fact-n">2B</div>
+        <div class="fact-t">parameters in the model we fine-tune, sized for on-device use</div>
+      </div>
+    </div>
+    <p class="note">Data come from a virtual reality shared-space experiment with synchronized first-person video, eye tracking, and trajectories. VR is what makes the gaze observable at all and lets near-miss encounters be staged rather than waited for. It also means the accuracies below are comparative evidence under controlled conditions, not field performance.</p>
   </div>
 </section>
 
-<!-- ===== ABSTRACT ===== -->
-<section class="section section-light" id="abstract">
-  <div class="container">
-    <div class="abstract-grid">
-      <div class="abstract-label">Abstract</div>
-      <div>
-        <p class="abstract-text">
-          Egocentric vision offers a first-person view of human perception and decision making, yet its
-          potential for traffic-safety prediction remains underexplored. In this work, we study the decoding
-          of pedestrian crossing intentions from short egocentric video clips. We approach this by formulating
-          the task as a closed-ended visual question answering (VQA) problem and leveraging vision language
-          models (VLMs) to predict the pedestrians' intent. We first benchmark three families of
-          state-of-the-art VLMs in a zero-shot setting, finding that they achieve moderate gains over random
-          guessing but exhibit limited higher-level traffic reasoning. Motivated by these findings, we further
-          adapt VLMs to the target task using parameter-efficient fine-tuning. Our results show that the
-          fine-tuned models substantially outperform their zero-shot counterparts and achieve a 9% accuracy
-          improvement over a specialized transformer-based baseline. Finally, we demonstrate that incorporating
-          additional contextual cues — ego motion, vehicle motion, and eye gaze — further improves predictive
-          performance. In particular, the fine-tuned Qwen3-VL-2B model guided by eye gaze and ego motion
-          achieves a 14.5% accuracy improvement over the transformer baseline, establishing a new state of
-          the art for egocentric pedestrian intent decoding.
-        </p>
-        <div class="keyword-row">
-          <span class="keyword-tag">Pedestrian Intention Prediction</span>
-          <span class="keyword-tag">Vision-Language Models</span>
-          <span class="keyword-tag">Egocentric Vision</span>
-          <span class="keyword-tag">Eye Gaze</span>
-          <span class="keyword-tag">LoRA Fine-tuning</span>
+<!-- ================= EXPLORER ================= -->
+<section class="section section-tone" id="explorer">
+  <div class="wrap">
+    <p class="section-label">Interactive explorer</p>
+    <h2>Build the input, see what it buys</h2>
+    <p class="lede">Every cue enters through one interface: text. Toggle what the model receives and watch what happens to accuracy, before and after adaptation. The central result of the paper is that cue value is regime-dependent.</p>
+  </div>
+
+  <div class="explorer wrap-wide">
+    <div class="ex-controls">
+      <fieldset class="ctl">
+        <legend>Video frames</legend>
+        <label class="opt"><input type="radio" name="video" value="raw"> Raw egocentric video</label>
+        <label class="opt"><input type="radio" name="video" value="gaze" checked> Gaze fixations rendered as red dots</label>
+      </fieldset>
+      <fieldset class="ctl">
+        <legend>Text context appended to the question</legend>
+        <label class="opt opt-ego"><input type="checkbox" name="ego" checked> Ego motion <span class="opt-sub">pedestrian position and speed</span></label>
+        <label class="opt"><input type="radio" name="extra" value="none"> Nothing else</label>
+        <label class="opt"><input type="radio" name="extra" value="veh"> Vehicle motion <span class="opt-sub">shuttle position and speed</span></label>
+        <label class="opt"><input type="radio" name="extra" value="gdir" checked> Gaze direction <span class="opt-sub">top-down angle in degrees</span></label>
+        <label class="opt"><input type="radio" name="extra" value="gscr"> Gaze on screen <span class="opt-sub">fixation coordinates in the image</span></label>
+      </fieldset>
+    </div>
+
+    <div class="ex-input">
+      <div class="frames" id="frames" aria-label="Eight sampled frames"></div>
+      <pre class="prompt" id="prompt" aria-live="polite"></pre>
+      <p class="prompt-note">Context values are illustrative. Real prompts use the recorded signals, given as a preface after the question, which worked better than interleaving them between frames.</p>
+    </div>
+
+    <div class="ex-results">
+      <div class="res" id="res-zs">
+        <div class="res-head">
+          <div class="res-title">Zero-shot</div>
+          <div class="res-sub">Qwen2.5-VL-7B, prompted only</div>
+        </div>
+        <div class="res-bar"><div class="bar-track"><div class="bar-fill bar-zs" id="bar-zs"></div><div class="bar-base" title="CLIP+Transformer baseline 0.727"></div></div></div>
+        <div class="res-nums"><span class="res-acc" id="acc-zs">–</span><span class="res-f1">macro F1 <b id="f1-zs">–</b></span></div>
+        <div class="res-delta" id="delta-zs"></div>
+      </div>
+      <div class="res" id="res-ft">
+        <div class="res-head">
+          <div class="res-title">Fine-tuned</div>
+          <div class="res-sub">Qwen3-VL-2B, LoRA rank 2, mean of 3 seeds</div>
+        </div>
+        <div class="res-bar"><div class="bar-track"><div class="bar-fill bar-ft" id="bar-ft"></div><div class="bar-base" title="CLIP+Transformer baseline 0.727"></div></div></div>
+        <div class="res-nums"><span class="res-acc" id="acc-ft">–</span><span class="res-f1">macro F1 <b id="f1-ft">–</b></span></div>
+        <div class="res-delta" id="delta-ft"></div>
+      </div>
+      <p class="res-legend"><span class="base-mark"></span> CLIP+Transformer baseline trained for this task: 0.727 accuracy. <span class="base-mark base-mark-maj"></span> Always answering "yield": 0.567.</p>
+      <p class="res-insight" id="insight"></p>
+    </div>
+  </div>
+
+  <div class="wrap configurations-summary">
+    <h3>All eight configurations at once</h3>
+    <p class="muted">Each line runs from the zero-shot score to the fine-tuned score of the same input. Gaze alone lands below "no context" when prompted, and on top after adaptation.</p>
+    <div class="chart-tools">
+      <div class="seg seg-sm" role="group" aria-label="Metric">
+        <button class="seg-btn is-on" data-metric="acc" data-chart="dumbbell">Accuracy</button>
+        <button class="seg-btn" data-metric="f1" data-chart="dumbbell">Macro F1</button>
+      </div>
+    </div>
+    <ul class="chart-legend" aria-label="Chart legend">
+      <li><span class="legend-dot legend-video" aria-hidden="true"></span>Video only</li>
+      <li><span class="legend-dot legend-context" aria-hidden="true"></span>With context</li>
+      <li>Lighter: zero-shot · Darker: fine-tuned</li>
+    </ul>
+    <div class="chart" id="chart-dumbbell"></div>
+  </div>
+</section>
+
+<!-- ================= FINDINGS ================= -->
+<section class="section" id="findings">
+  <div class="wrap">
+    <p class="section-label">Results</p>
+    <h2>Four things the experiments showed</h2>
+  </div>
+
+  <!-- Finding 1 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 1">01</span>
+      <h3>Off-the-shelf models see the scene but do not know the traffic</h3>
+      <p>With video alone, no zero-shot model reaches the task-specific CLIP+Transformer baseline, and several barely beat always answering "yield". Asking for chain-of-thought reasoning does not help and multiplies latency by ten. Marking the shuttle and the crossing goal in the frames (set-of-marks) does not help either. Low-rank fine-tuning removes the gap for both model families.</p>
+      <p class="muted">Time is per-sample inference latency. Hover a bar for details.</p>
+    </div>
+    <div class="finding-viz">
+      <div class="chart-tools">
+        <div class="seg seg-sm" role="group" aria-label="Metric">
+          <button class="seg-btn is-on" data-metric="acc" data-chart="leader">Accuracy</button>
+          <button class="seg-btn" data-metric="f1" data-chart="leader">Macro F1</button>
         </div>
       </div>
+      <div class="chart" id="chart-leader"></div>
+    </div>
+  </article>
+
+  <!-- Finding 2 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 2">02</span>
+      <h3>The models read the clip, not a shortcut</h3>
+      <p>A model could score well here while ignoring the video. So we corrupt the input and hold everything else fixed. For the video-only model, blank or mismatched frames drop accuracy to the majority-class rate, and reversing frame order hurts more than shuffling it: the model reads the <em>direction</em> of motion. For the gaze-guided model, corrupting frames costs little because the context stream carries the signal, and removing that stream at test time costs a lot.</p>
+      <p class="muted">Pick a corruption. Faded marks show the uncorrupted score.</p>
+    </div>
+    <div class="finding-viz">
+      <div class="cf-picker" id="cf-picker" role="group" aria-label="Counterfactual input condition"></div>
+      <div class="cf-strip" id="cf-strip" aria-hidden="true"></div>
+      <div class="chart" id="chart-cf"></div>
+    </div>
+  </article>
+
+  <!-- Finding 3 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 3">03</span>
+      <h3>Gaze is unusable untrained and the best cue once learned</h3>
+      <p>Prompted, gaze direction or on-screen fixations alone lower accuracy below the no-context input, and a single cue only works when ego motion gives it a frame of reference. After fine-tuning, ego motion plus gaze direction is the best model we have, at 0.835 accuracy on unseen participants. That is 14.9% above the baseline in relative terms and 7.7% above the same model fine-tuned on video alone.</p>
+      <p>Vehicle motion, the one cue vehicle-side sensing already provides, adds almost nothing in either regime.</p>
+    </div>
+    <div class="finding-viz">
+      <div class="gain-grid" id="gain-grid"></div>
+    </div>
+  </article>
+
+  <!-- Finding 4 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 4">04</span>
+      <h3>What adaptation costs depends on the run</h3>
+      <p>We re-test every fine-tuned model on MMBench, a general visual-reasoning benchmark unrelated to traffic. Video-only fine-tuning loses a little, evenly. Gaze-guided fine-tuning with the same rank and epochs is a lottery: one seed keeps nearly all of its general ability, one loses some, one loses most. The mean hides this. The seed spread is the result.</p>
+      <p class="muted">Each dot is one training seed, averaged over three MMBench subsamples. Hover a dot.</p>
+    </div>
+    <div class="finding-viz">
+      <ul class="chart-legend" aria-label="Model legend">
+        <li><span class="legend-dot legend-base" aria-hidden="true"></span>Base model</li>
+        <li><span class="legend-dot legend-video" aria-hidden="true"></span>Video only</li>
+        <li><span class="legend-dot legend-context" aria-hidden="true"></span>Ego + gaze</li>
+      </ul>
+      <div class="chart" id="chart-mmb"></div>
+    </div>
+  </article>
+</section>
+
+<!-- ================= IMPLICATIONS ================= -->
+<section class="section section-tone" id="implications">
+  <div class="wrap">
+    <p class="section-label">Implications</p>
+    <h2>What follows for practice</h2>
+    <div class="impl">
+      <div class="impl-item">
+        <h3>Gaze-capable eyewear, not a forward camera alone</h3>
+        <p>Of every cue we tested, gaze yields the largest gain and vehicle motion the smallest. A device is worth what it senses.</p>
+      </div>
+      <div class="impl-item">
+        <h3>A complement to vehicle-centric sensing</h3>
+        <p>The model anticipates the wearer's own decision from what a head-mounted device already captures, with no instrumented vehicle or infrastructure, and it covers the occlusion cases vehicle sensors cannot.</p>
+      </div>
+      <div class="impl-item">
+        <h3>Training stability is the deployment target</h3>
+        <p>Gaze-guided adaptation can keep general capability or destroy it depending on the seed. Checkpoint selection on a general held-out set, or a rehearsal term, are the next things to try.</p>
+      </div>
+    </div>
+    <div class="limits">
+      <h3>Read with these limits</h3>
+      <ul>
+        <li>VR data. Behaviour in VR has not been validated against real pedestrian–AV encounters, because no such recordings exist.</li>
+        <li>Uniform frame sampling. Brief but decisive cues can fall between frames.</li>
+        <li>On-device operation is a design constraint here, not a demonstrated result.</li>
+      </ul>
     </div>
   </div>
 </section>
 
-<!-- ===== METHOD ===== -->
-<section class="section" id="method">
-  <div class="container">
-    <h2 class="section-title">Approach</h2>
+<!-- ================= PAPER ================= -->
+<section class="section" id="paper">
+  <div class="wrap">
+    <p class="section-label">Citation</p>
+    <h2>BibTeX</h2>
 
-    <p class="lead-text">
-      We frame crossing-intention prediction as a <strong>closed-ended VQA task</strong>:
-      given a 2-second egocentric video clip, the model answers
-      <em>"Will you cross or yield in the next second?"</em>
-      This lets us plug in any VLM off the shelf — and fine-tune it with minimal overhead.
-    </p>
-
-    <figure class="figure-full mt-md">
-      <img src="Figures/pipeline-horizontal.png" alt="EgoCross-VLM pipeline">
-      <figcaption>
-        The three-stage pipeline: egocentric input (video + optional context) → VLM-based intent decoding
-        (zero-shot prompting or LoRA fine-tuning) → binary prediction with chain-of-thought justification.
-      </figcaption>
-    </figure>
-
-    <div class="method-grid mt-lg">
-      <div class="method-block">
-        <h3><span class="method-icon">&#127909;</span> Input</h3>
-        <p>8 uniformly sampled frames from a 2-second clip, interleaved with timestamps.
-        Optionally augmented with <strong>eye-gaze fixations</strong> rendered as red dots,
-        plus text context: ego speed, vehicle position, and personal attributes.</p>
-      </div>
-      <div class="method-block">
-        <h3><span class="method-icon">&#129302;</span> Models</h3>
-        <p>Two families: <strong>MLLMs</strong> (Qwen3-VL-2B/8B, Qwen2.5-VL-7B, InternVL3-2B/8B)
-        with broad web-scale knowledge, and a <strong>VLP</strong> (GroundVQA) explicitly pretrained
-        on egocentric video-text pairs.</p>
-      </div>
-      <div class="method-block">
-        <h3><span class="method-icon">&#128269;</span> Adaptation</h3>
-        <p>Zero-shot evaluation with standard, chain-of-thought, and visual (set-of-marks) prompting.
-        Then <strong>LoRA fine-tuning</strong> on domain-specific QA pairs — freezing the vision encoder,
-        updating only language and cross-modal modules.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== RESULTS ===== -->
-<section class="section section-light" id="results">
-  <div class="container">
-    <h2 class="section-title">Results</h2>
-
-    <!-- Finding 1 -->
-    <div class="finding">
-      <div class="finding-number">01</div>
-      <div class="finding-body">
-        <h3>Off-the-shelf VLMs show limited traffic reasoning</h3>
-        <p>
-          Zero-shot VLMs beat random guessing but fall well short of the CLIP+Transformer baseline (72.7% acc.).
-          Chain-of-thought prompting makes things <em>worse</em> — amplifying language priors over visual evidence.
-          Set-of-marks overlays don't help either, likely due to imperfect detection in the VR environment.
-        </p>
-      </div>
-    </div>
-
-    <!-- Finding 2 -->
-    <div class="finding">
-      <div class="finding-number">02</div>
-      <div class="finding-body">
-        <h3>Fine-tuning closes the gap — and beats the baseline</h3>
-        <p>
-          LoRA fine-tuning on domain-specific QA pairs pushes both models past the specialist baseline.
-          The best configuration for each architecture differs: Qwen benefits from updating cross-modal
-          modules only; VLP does better with both language and cross-modal adaptation.
-        </p>
-      </div>
-    </div>
-
-    <!-- Main results table -->
-    <div class="table-wrapper mt-md">
-      <table>
-        <caption style="padding:0.6rem 0.9rem;text-align:left;font-size:0.82rem;color:#718096;background:#f8f9fa;">
-          Main results — egocentric video only. <strong>Bold</strong> = best in group. &dagger; = 8-bit quantization.
-        </caption>
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th>Setting</th>
-            <th class="center">Acc.</th>
-            <th class="center">M-F1</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="row-group-header"><td colspan="4">Baselines</td></tr>
-          <tr><td>Majority class</td><td>—</td><td class="center">0.567</td><td class="center">0.362</td></tr>
-          <tr><td>Random</td><td>—</td><td class="center">0.500</td><td class="center">0.497</td></tr>
-          <tr><td>CLIP + Transformer</td><td>—</td><td class="center best">0.727</td><td class="center best">0.724</td></tr>
-          <tr class="row-group-header"><td colspan="4">Zero-shot (best per model)</td></tr>
-          <tr><td>Qwen3-VL-2B</td><td>Standard prompt</td><td class="center">0.593</td><td class="center">0.580</td></tr>
-          <tr><td>Qwen2.5-VL-7B&dagger;</td><td>Standard prompt</td><td class="center best">0.632</td><td class="center best">0.579</td></tr>
-          <tr><td>InternVL3-8B&dagger;</td><td>Standard prompt</td><td class="center">0.594</td><td class="center">0.475</td></tr>
-          <tr><td>VLP (GroundVQA)</td><td>Standard prompt</td><td class="center">0.567</td><td class="center">0.378</td></tr>
-          <tr class="row-group-header"><td colspan="4">Fine-tuned (LoRA)</td></tr>
-          <tr><td>Qwen3-VL-2B</td><td>LoRA (cross-modal)</td><td class="center">0.777</td><td class="center">0.773</td></tr>
-          <tr><td>VLP (GroundVQA)</td><td>LoRA (lan. + cross-modal)</td><td class="center best">0.789</td><td class="center best">0.787</td></tr>
-        </tbody>
-        <tfoot>
-          <tr><td colspan="4">Full zero-shot ablations (CoT, visual prompting, frame count, interleaving) are in the paper.</td></tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <!-- Finding 3 -->
-    <div class="finding mt-lg">
-      <div class="finding-number">03</div>
-      <div class="finding-body">
-        <h3>Eye gaze is the most valuable context cue — but only once the model is trained to use it</h3>
-        <p>
-          Zero-shot: ego motion helps most (+3.2% acc.) but gaze signals are noisy without training.
-          After fine-tuning with ego motion + gaze on screen, the model generalizes better to unseen participants,
-          achieving <strong>83.0% accuracy</strong> — a 14.5-point improvement over the specialist baseline.
-        </p>
-      </div>
-    </div>
-
-    <div class="two-col mt-md">
-      <div>
-        <figure>
-          <img src="Figures/context_val_test_comparison_xtick.png" alt="Context cue comparison">
-          <figcaption>Fine-tuned Qwen3-VL-2B across context configurations. Ego motion + gaze on screen yields the
-          largest test-set gain and best generalization (val ≈ test gap is smallest).</figcaption>
-        </figure>
-      </div>
-      <div>
-        <figure>
-          <img src="Figures/zeroshot_context_fps.png" alt="Effect of context sampling rate">
-          <figcaption>Zero-shot: denser context sampling (4–30 Hz) consistently helps.
-          Gaze-on-screen and vehicle motion are the most reliable individual cues across sampling rates.</figcaption>
-        </figure>
-      </div>
-    </div>
-
-    <!-- Ablations (compact) -->
-    <h3 class="subsection-title mt-lg">Input representation ablations</h3>
-    <div class="two-col">
-      <figure>
-        <img src="Figures/ablation_interleaved_inputs.png" alt="Interleaved inputs ablation">
-        <figcaption>Interleaving timestamps with frames helps — the model can associate context with specific moments in the clip.</figcaption>
-      </figure>
-      <figure>
-        <img src="Figures/ablation_video_frame_number.png" alt="Frame count ablation">
-        <figcaption>Larger models degrade with more frames (noise sensitivity); smaller models benefit from the extra evidence.</figcaption>
-      </figure>
-    </div>
-
-    <h3 class="subsection-title mt-lg">Which modules to fine-tune?</h3>
-    <div class="two-col">
-      <figure>
-        <img src="Figures/qwen_finetuning.png" alt="Qwen fine-tuning strategies">
-        <figcaption>Qwen3-VL-2B: updating cross-modal modules only is sufficient — language layers already generalize well.</figcaption>
-      </figure>
-      <figure>
-        <img src="Figures/vlp_finetuning.png" alt="VLP fine-tuning strategies">
-        <figcaption>VLP: needs both language and cross-modal adaptation — its language module is less general than Qwen's.</figcaption>
-      </figure>
-    </div>
-
-  </div>
-</section>
-
-<!-- ===== QUALITATIVE ===== -->
-<section class="section section-dark" id="qualitative">
-  <div class="container">
-    <h2 class="section-title">Model Reasoning in Action</h2>
-
-    <p class="lead-text" style="color:#a0aec0; margin-bottom: 2rem;">
-      We use chain-of-thought prompting to peek inside the model's decision process.
-      Colors mark reasoning quality:
-      <span class="reasoning-tag incorrect">incorrect</span>
-      <span class="reasoning-tag correct">correct</span>
-      <span class="reasoning-tag partial">partially correct</span>
-      <span class="reasoning-tag context">context-relevant</span>
-    </p>
-
-    <div class="qualitative-block mb-lg">
-      <div class="qualitative-label qualitative-label--fail">Failure: video only vs. gaze-augmented</div>
-      <figure class="figure-full">
-        <img src="Figures/badex.png" alt="Failure case">
-        <figcaption>
-          Both models spot the vehicle and the pedestrian's goal — but incorrectly infer the shuttle is
-          moving and has already cleared the path. In reality it has stopped. Neither gaze nor extra
-          context rescues the model here: understanding subtle vehicle intent (yielding vs. creeping)
-          remains an open challenge.
-        </figcaption>
-      </figure>
-    </div>
-
-    <div class="qualitative-block">
-      <div class="qualitative-label qualitative-label--success">Success: gaze overlay makes the difference</div>
-      <figure class="figure-full">
-        <img src="Figures/goodex.png" alt="Success case">
-        <figcaption>
-          With gaze overlay, the model correctly infers the pedestrian is monitoring an ongoing interaction
-          and should wait. The reasoning rarely references the gaze dots explicitly — but they shift the
-          model's attention to the right region of the scene.
-        </figcaption>
-      </figure>
-    </div>
-
-    <h3 class="subsection-title mt-lg" style="color:#e2e8f0;">Visual prompting: set-of-marks overlays</h3>
-    <p style="color:#a0aec0; margin-bottom: 1.25rem;">
-      We also tried augmenting video frames with bounding boxes and persistent object IDs via GroundingDINO + SORT tracking.
-      While the overlays are visually clean, they did not improve zero-shot accuracy — likely because detection is
-      imperfect in the VR environment and the model doesn't reliably connect the numbered boxes to crossing decisions.
-    </p>
-    <div class="two-col">
-      <figure>
-        <img src="Figures/som_overlay_1.png" alt="Set-of-marks: consistent tracking">
-        <figcaption>Consistent tracking of the AV and crossing circle across frames.</figcaption>
-      </figure>
-      <figure>
-        <img src="Figures/som_overlay_2.png" alt="Set-of-marks: new objects on head turn">
-        <figcaption>New objects detected when the pedestrian turns their head.</figcaption>
-      </figure>
-    </div>
-
-  </div>
-</section>
-
-<!-- ===== CITATION ===== -->
-<section class="section section-light" id="citation">
-  <div class="container">
-    <h2 class="section-title">Citation</h2>
-    <div class="citation-box">
-      <pre id="bibtex">@article{li2025egocross,
-  title   = {Decoding Pedestrian Crossing Intention from Egocentric Vision
-             via Vision Language Models},
+    <div class="bib" id="bibtex">
+      <pre id="bib-text">@article{li2026egocross,
+  title   = {Decoding Pedestrian Crossing Intention in Interactions with
+             Automated Vehicles from Egocentric Vision via Vision Language Models},
   author  = {Li, Danya and Su, Xiang and Feng, Yan and Krueger, Rico},
   journal = {arXiv preprint arXiv:2606.09142},
-  year    = {2025}
+  year    = {2026}
 }</pre>
-      <button class="btn btn-copy" onclick="copyBibtex()" id="copy-btn">
-        <i class="fas fa-copy"></i> Copy
-      </button>
+      <button class="btn btn-sm" id="copy-bib" type="button">Copy</button>
     </div>
   </div>
 </section>
 
-<!-- ===== FOOTER ===== -->
+</main>
+
 <footer class="footer">
-  <p>
-    Page maintained by <a href="mailto:danli@dtu.dk">Danya Li</a>.
-    &nbsp;|&nbsp;
-    <a href="https://github.com/danyayay/EgoCross-VLM" target="_blank" rel="noopener">
-      <i class="fab fa-github"></i> GitHub
-    </a>
-  </p>
+  <div class="wrap">
+    <p>If you have any questions or suggestions, please feel free to contact <a href="mailto:danli@dtu.dk">Danya Li</a>.</p>
+  </div>
 </footer>
 
-<script>
-  function copyBibtex() {
-    const text = document.getElementById('bibtex').innerText;
-    navigator.clipboard.writeText(text).then(function() {
-      const btn = document.getElementById('copy-btn');
-      btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-      setTimeout(function() { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
-    });
-  }
-</script>
+<script src="site.js"></script>
 </body>
 </html>
