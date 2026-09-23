@@ -21,11 +21,11 @@
 <header class="topbar">
   <a class="brand" href="#top">EgoCross-VLM</a>
   <nav class="topnav" aria-label="Sections">
-    <a href="#why">Why</a>
+    <a href="#why">Motivation</a>
+    <a href="#methodology">Methodology</a>
+    <a href="#findings">Results</a>
     <a href="#explorer">Explore</a>
-    <a href="#findings">Findings</a>
     <a href="#implications">Implications</a>
-    <!-- <a href="#paper">Paper</a> -->
   </nav>
 </header>
 
@@ -61,107 +61,6 @@
 
 </section>
 
-<section class="viewpoint-section" aria-label="Compare camera viewpoints">
-  <!-- Viewpoint switcher -->
-  <figure class="viewpoint wrap-wide" id="viewpoint">
-    <div class="viewpoint-head">
-      <div class="seg" role="tablist" aria-label="Choose a viewpoint">
-        <button class="seg-btn" role="tab" data-view="exo" aria-selected="false" id="tab-exo">From the vehicle</button>
-        <button class="seg-btn is-on" role="tab" data-view="ego" aria-selected="true" id="tab-ego">From the pedestrian</button>
-      </div>
-      <p class="viewpoint-q">Will this pedestrian <span class="chip chip-cross">cross</span> or <span class="chip chip-yield">yield</span> in the next second?</p>
-    </div>
-
-    <div class="scene" data-view="ego">
-      <!-- Exocentric: vehicle-mounted camera looking at the pedestrian -->
-      <svg class="scene-svg scene-exo" viewBox="0 0 960 420" aria-labelledby="exo-title" role="img">
-        <title id="exo-title">Exocentric view: the vehicle camera sees the pedestrian as a box; their attention can only be guessed from head pose.</title>
-        <defs>
-          <linearGradient id="skyExo" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#dfe5ea"/><stop offset="1" stop-color="#eef0ee"/>
-          </linearGradient>
-        </defs>
-        <rect width="960" height="420" fill="url(#skyExo)"/>
-        <!-- buildings -->
-        <g fill="#c9d0d5">
-          <rect x="0" y="120" width="140" height="120"/><rect x="150" y="90" width="110" height="150"/>
-          <rect x="700" y="100" width="120" height="140"/><rect x="830" y="130" width="130" height="110"/>
-        </g>
-        <!-- ground -->
-        <polygon points="0,240 960,240 960,420 0,420" fill="#b9b0a4"/>
-        <polygon points="0,240 960,240 960,420 0,420" fill="url(#brick)" opacity=".35"/>
-        <!-- pedestrian silhouette -->
-        <g transform="translate(560,205)">
-          <circle cx="0" cy="0" r="14" fill="#2b3036"/>
-          <path d="M-16,20 h32 l6,60 h-12 l-4,-30 l-4,30 h-12 l-4,-30 l-4,30 h-12 l6,-60 z" fill="#2b3036"/>
-          <!-- head pose arrow -->
-          <path d="M14,-2 l30,-12" stroke="#3E5A73" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
-        </g>
-        <!-- detector bounding box -->
-        <rect x="528" y="182" width="66" height="112" fill="none" stroke="#3E5A73" stroke-width="2"/>
-        <g font-family="JetBrains Mono, monospace" font-size="13" fill="#3E5A73">
-          <text x="528" y="174">pedestrian  0.91</text>
-          <text x="606" y="200">head pose → looking left?</text>
-          <text x="606" y="220" fill="#8a949c">gaze: not observable</text>
-          <text x="606" y="240" fill="#8a949c">what they saw: unknown</text>
-        </g>
-        <!-- dashboard hood -->
-        <path d="M0,420 L0,372 Q480,330 960,372 L960,420 Z" fill="#33393f"/>
-        <text x="20" y="404" font-family="JetBrains Mono, monospace" font-size="13" fill="#c9d0d5">vehicle camera · v = 2.1 m/s · decelerating</text>
-      </svg>
-
-      <!-- Egocentric: the pedestrian's own view, with gaze -->
-      <svg class="scene-svg scene-ego" viewBox="0 0 960 420" aria-labelledby="ego-title" role="img">
-        <title id="ego-title">Egocentric view: the pedestrian's own camera, with the shuttle approaching and the gaze fixation point moving between the shuttle and the crossing goal.</title>
-        <defs>
-          <linearGradient id="skyEgo" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#e8ecef"/><stop offset="1" stop-color="#f1efe9"/>
-          </linearGradient>
-          <pattern id="brick" width="26" height="12" patternUnits="userSpaceOnUse">
-            <rect width="26" height="12" fill="none"/>
-            <path d="M0,6 H26 M13,0 V6 M0,6 V12 M26,6 V12" stroke="#8d6a56" stroke-width="1" opacity=".5"/>
-          </pattern>
-        </defs>
-        <rect width="960" height="420" fill="url(#skyEgo)"/>
-        <!-- buildings, converging -->
-        <g fill="#d3d8db">
-          <polygon points="0,60 210,130 210,232 0,238"/>
-          <polygon points="960,60 750,130 750,232 960,238"/>
-        </g>
-        <g fill="#c2c9cd">
-          <polygon points="210,140 330,185 330,228 210,232"/>
-          <polygon points="750,140 630,185 630,228 750,232"/>
-        </g>
-        <g fill="#8fa27e" opacity=".8"><circle cx="300" cy="150" r="26"/><circle cx="660" cy="152" r="24"/><circle cx="372" cy="176" r="16"/></g>
-        <!-- plaza ground -->
-        <polygon points="330,228 630,228 960,420 0,420" fill="#a7735c"/>
-        <polygon points="330,228 630,228 960,420 0,420" fill="url(#brick)"/>
-        <!-- crossing goal circle -->
-        <ellipse id="goal" cx="700" cy="372" rx="70" ry="16" fill="none" stroke="#f4f2ee" stroke-width="4"/>
-        <!-- shuttle, approaching from the left -->
-        <g class="shuttle">
-          <rect x="0" y="0" width="150" height="86" rx="14" fill="#2f3a44"/>
-          <rect x="10" y="12" width="130" height="34" rx="6" fill="#9fb4c4"/>
-          <rect x="0" y="56" width="150" height="8" fill="var(--ped)" opacity=".8"/>
-          <circle cx="30" cy="88" r="12" fill="#17191c"/><circle cx="120" cy="88" r="12" fill="#17191c"/>
-        </g>
-        <!-- gaze fixation dot -->
-        <circle class="gaze" r="9" fill="#E5261F" stroke="#fff" stroke-width="2"/>
-        <g font-family="JetBrains Mono, monospace" font-size="13">
-          <text x="20" y="30" fill="#4b5157">egocentric camera · 2 s window · 8 frames</text>
-          <text class="gaze-label" x="20" y="52" fill="var(--ped)">gaze: on the shuttle</text>
-          <text x="20" y="74" fill="#4b5157">ego speed 0.6 m/s · slowing</text>
-        </g>
-      </svg>
-    </div>
-
-    <figcaption class="viewpoint-cap">
-      <span class="cap-exo">A vehicle-mounted sensor gets a stable, global picture, but the pedestrian is an <em>observed</em> agent. Whether they have registered the shuttle can only be guessed from head or body pose.</span>
-      <span class="cap-ego">The pedestrian's own camera records the scene as it looked when the decision was made, plus head motion, ego speed, and, with eye tracking, the exact point of regard. We ask a vision language model to read this and answer the question above, one second ahead.</span>
-    </figcaption>
-  </figure>
-</section>
-
 <!-- ================= WHY ================= -->
 <section class="section" id="why">
   <div class="wrap">
@@ -171,9 +70,16 @@
 
     <div class="compare">
       <div class="compare-row compare-head">
-        <div></div>
-        <div class="col-veh">Vehicle-side prediction</div>
-        <div class="col-ped">Pedestrian-side prediction</div>
+        <div class="compare-spacer" aria-hidden="true"></div>
+        <div class="col-veh">
+          <h3>Vehicle-side prediction</h3>
+          <img src="Figures/illustration-exo.png" width="1004" height="340" alt="Vehicle-mounted street view with detection boxes, alongside an overhead view of pedestrians." decoding="async">
+        </div>
+        <div class="col-ped">
+          <h3>Pedestrian-side prediction</h3>
+          <img src="Figures/illustration-ego.png" width="980" height="396" alt="Concept illustration of smart glasses highlighting traffic hazards in the wearer's field of view." decoding="async">
+          <!-- <p class="viewpoint-note">Illustrative concept; overlays and risk scores are not outputs of EgoCross-VLM.</p> -->
+        </div>
       </div>
       <div class="compare-row">
         <div class="compare-k">Sensor</div>
@@ -202,7 +108,7 @@
       </div>
     </div>
 
-    <div class="facts">
+    <!-- <div class="facts">
       <div class="fact">
         <div class="fact-n">1 s</div>
         <div class="fact-t">prediction horizon, from a 2-second first-person clip</div>
@@ -215,9 +121,147 @@
         <div class="fact-n">2B</div>
         <div class="fact-t">parameters in the model we fine-tune, sized for on-device use</div>
       </div>
-    </div>
-    <p class="note">Data come from a virtual reality shared-space experiment with synchronized first-person video, eye tracking, and trajectories. VR is what makes the gaze observable at all and lets near-miss encounters be staged rather than waited for. It also means the accuracies below are comparative evidence under controlled conditions, not field performance.</p>
+    </div> -->
+    <p class="note">Data come from a virtual reality (VR) shared-space experiment with synchronized first-person video, eye tracking, and trajectories. VR is what makes the gaze observable at all and lets near-miss encounters be staged rather than waited for. It also means the accuracies below are comparative evidence under controlled conditions, not field performance.</p>
   </div>
+</section>
+
+<!-- ================= METHODOLOGY ================= -->
+<section class="section section-tone" id="methodology">
+  <div class="wrap">
+    <p class="section-label">Methodology</p>
+    <h2>From first-person video to crossing intention</h2>
+    <p class="lede">Given the past 2 seconds of the pedestrian’s view, predict whether they will cross or yield in the next second.</p>
+  </div>
+  <div class="wrap-wide">
+    <figure class="method-pipeline">
+      <img src="Figures/pipeline-horizontal.png" width="2500" height="1000" alt="EgoCross-VLM pipeline: VR-derived egocentric inputs feed vision language models through prompting or parameter-efficient fine-tuning to predict cross or yield." loading="lazy" decoding="async">
+    </figure>
+  </div>
+  <div class="wrap">
+    <div class="method-evaluation">
+      <h3>Evaluate on unseen participants</h3>
+      <p>Split participants 60% / 10% / 30% into training, validation, and test sets. Select checkpoints on validation accuracy and report test accuracy and macro F1 across three training seeds. Input-corruption tests probe cue use; MMBench checks general visual reasoning after adaptation.</p>
+    </div>
+    <details class="finding-detail gain-explanation">
+      <summary>Labels and training settings</summary>
+      <p>Windows advance in 0.5-second steps. Labels use near-term movement as a proxy for intention: “cross” means speed exceeds the crossing threshold for most of the next second; otherwise the label is “yield.” The dataset contains 2,486 cross and 3,561 yield samples.</p>
+      <p>LoRA uses rank 2, scaling factor 8, and AdamW with a learning rate of 0.0001 for up to 10 epochs. We select the checkpoint with the highest validation accuracy for each run.</p>
+    </details>
+  </div>
+</section>
+
+<!-- ================= FINDINGS ================= -->
+<section class="section" id="findings">
+  <div class="wrap">
+    <p class="section-label">Results</p>
+    <h2>Four things the experiments showed</h2>
+  </div>
+
+  <!-- Finding 1 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 1">01</span>
+      <h3>Fine-tuning closes the accuracy gap</h3>
+      <div id="leader-highlights" aria-live="polite">
+        <p class="finding-stat"><strong>62.9%</strong><span>best zero-shot accuracy · video only<br>Qwen2.5-VL-7B</span></p>
+        <p class="finding-stat"><strong>78.8%</strong><span>best fine-tuned accuracy · video only<br>VLP (GroundVQA)</span></p>
+      </div>
+      <ul class="finding-points">
+        <li><strong>Zero-shot:</strong> the best video-only model reaches 62.9% accuracy. No zero-shot model outperforms CLIP+Transformer baseline.</li>
+        <li><strong>Fine-tuned:</strong> Qwen3-VL-2B reaches 77.5% and VLP reaches 78.8%. Both exceed the task-specific baseline.</li>
+        <li><strong>Prompting:</strong> Both chain-of-thought and visual markers falls short while adding heavy latency (3–5 seconds per sample)</li>
+      </ul>
+    </div>
+    <div class="finding-viz">
+      <div class="chart-tools">
+        <div class="seg seg-sm" role="group" aria-label="Metric">
+          <button class="seg-btn is-on" data-metric="acc" data-chart="leader">Accuracy</button>
+          <button class="seg-btn" data-metric="f1" data-chart="leader">Macro F1</button>
+        </div>
+      </div>
+      <div class="chart" id="chart-leader"></div>
+      <p class="finding-chart-note">Results use egocentric video only, without additional context. The alternative prompts use Qwen2.5-VL-7B: chain-of-thought asks for intermediate reasoning; set-of-marks highlights the shuttle and crossing goal. Hover a bar for its accuracy, macro F1, and inference time.</p>
+    </div>
+  </article>
+
+  <!-- Finding 2 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 2">02</span>
+      <h3>Gaze helps most after fine-tuning</h3>
+      <p class="finding-stat"><strong>83.5%</strong><span>best fine-tuned accuracy · video + context<br>Qwen3-VL-2B</span></p>
+      <ul class="finding-points">
+        <li><strong>Zero-shot:</strong> gaze context alone lowers accuracy. Ego motion helps; ego + on-screen gaze gives the highest score, <strong>66.3%</strong> (+2.7 points).</li>
+        <li><strong>Fine-tuned:</strong> ego + gaze direction gives the largest gain, <strong>+6.8 points</strong> over no context.</li>
+        <li><strong>Motion cues:</strong> ego motion alone adds 2.6 points zero-shot and 3.7 after fine-tuning. Vehicle motion adds little beyond ego motion.</li>
+      </ul>
+      The best fine-tuned configuration improves accuracy by 14.9% relative to CLIP+Transformer and 7.7% relative to the same model fine-tuned on raw video alone.
+    </div>
+    <div class="finding-viz">
+      <div class="gain-grid" id="gain-grid"></div>
+      <!-- <details class="finding-detail gain-explanation">
+        <summary>How to read the figure: inputs and baselines</summary>
+        <p>Bars show accuracy changes in percentage points on a shared −3 to +7 scale. Left of zero means lower accuracy; right means higher. Both “Cue alone” and “Ego + cue” use the same no-text-context baseline within each panel: 63.6% zero-shot and 76.7% fine-tuned.</p>
+        <p>All configurations use gaze-overlaid video. Gaze direction and on-screen coordinates enter as additional text context.</p>
+      </details> -->
+      <p class="finding-chart-note">Bars show accuracy changes in percentage points. Left of zero means lower accuracy; right means higher. Both “Cue alone” and “Ego + cue” use the same no-text-context baseline within each panel. All configurations use gaze-overlaid video.</p>
+    </div>
+  </article>
+
+  <!-- Finding 3 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 3">03</span>
+      <h3>Evidence against shortcut learning</h3>
+      <p class="finding-stat"><strong>48.3%</strong><span>accuracy without video · down from 77.5%<br>Qwen3-VL-2B · video-only fine-tuning</span></p>
+      <ul class="finding-points">
+        <li><strong>Visual evidence:</strong> removing, blanking, or mismatching frames drops video-only accuracy below the 56.7% majority-class baseline.</li>
+        <li><strong>Temporal order:</strong> reversing frames hurts more than shuffling them, suggesting the model uses motion direction.</li>
+        <li><strong>Gaze + context:</strong> corrupted frames have less effect. Withholding context drops accuracy from 83.5% to 65.4%, even with the original video.</li>
+      </ul>
+    </div>
+    <div class="finding-viz">
+      <div class="cf-picker" id="cf-picker" role="group" aria-label="Counterfactual input condition"></div>
+      <div class="cf-strip" id="cf-strip" aria-hidden="true"></div>
+      <ul class="chart-legend cf-legend" id="cf-legend" aria-label="Input corruption chart legend"></ul>
+      <div class="chart" id="chart-cf" aria-label="Accuracy by input condition"></div>
+      <p class="finding-chart-note" id="cf-description" aria-live="polite"></p>
+      <details class="finding-detail gain-explanation">
+        <summary>What the corruption tests establish</summary>
+        <p>The video-only results support reliance on visual evidence rather than language bias alone. They do not rule out every possible shortcut. The context-guided model also uses the supplied motion and gaze measurements, so robustness to frame corruption does not by itself indicate a shortcut.</p>
+        <p>Select a condition to compare the video-only model with the context-guided model, with and without context at test time. Faded bars and horizontal markers show each model’s original-input score; dashed lines show the two reference baselines.</p>
+      </details>
+    </div>
+  </article>
+
+  <!-- Finding 4 -->
+  <article class="finding wrap-wide">
+    <div class="finding-text">
+      <span class="finding-number" aria-label="Result 4">04</span>
+      <h3>General ability varies across training runs</h3>
+      <p>We test whether adapting to crossing prediction preserves general visual reasoning on MMBench.</p>
+      <ul class="finding-points">
+        <li><strong>Video only:</strong> fine-tuning produces small, consistent losses across training seeds.</li>
+        <li><strong>Ego + gaze:</strong> outcomes vary widely despite the same training settings, from modest losses to substantial degradation.</li>
+        <li><strong>Model selection:</strong> crossing accuracy alone is insufficient; each checkpoint also needs a general-reasoning evaluation.</li>
+      </ul>
+    </div>
+    <div class="finding-viz">
+      <ul class="chart-legend" aria-label="Model legend">
+        <li><span class="legend-dot legend-base" aria-hidden="true"></span>Base model</li>
+        <li><span class="legend-dot legend-video" aria-hidden="true"></span>Video only</li>
+        <li><span class="legend-dot legend-context" aria-hidden="true"></span>Ego + gaze</li>
+      </ul>
+      <div class="chart" id="chart-mmb"></div>
+      <p class="finding-chart-note">Each dot represents one training seed, averaged over three MMBench subsamples.</p>
+      <details class="finding-detail gain-explanation">
+        <summary>Evaluation and variation across runs</summary>
+        <p>We compare the base model with three training seeds per fine-tuning configuration across six MMBench categories. Each score averages three subsamples of 100 questions per category; “Overall” averages the six category scores.</p>
+        <p>Rank and epoch settings stay fixed across seeds. The shaded band spans the ego + gaze runs, exposing variation that a single average would hide. Hover a dot for its seed and score.</p>
+      </details>
+    </div>
+  </article>
 </section>
 
 <!-- ================= EXPLORER ================= -->
@@ -225,7 +269,7 @@
   <div class="wrap">
     <p class="section-label">Interactive explorer</p>
     <h2>Build the input, see what it buys</h2>
-    <p class="lede">Every cue enters through one interface: text. Toggle what the model receives and watch what happens to accuracy, before and after adaptation. The central result of the paper is that cue value is regime-dependent.</p>
+    <p class="lede">Toggle what the model receives and watch what happens to accuracy, before and after adaptation. The central result of the paper is that cue value is regime-dependent.</p>
   </div>
 
   <div class="explorer wrap-wide">
@@ -275,8 +319,8 @@
     </div>
   </div>
 
-  <div class="wrap configurations-summary">
-    <h3>All eight configurations at once</h3>
+  <details class="wrap configurations-summary">
+    <summary>Compare all configurations</summary>
     <p class="muted">Each line runs from the zero-shot score to the fine-tuned score of the same input. Gaze alone lands below "no context" when prompted, and on top after adaptation.</p>
     <div class="chart-tools">
       <div class="seg seg-sm" role="group" aria-label="Metric">
@@ -290,84 +334,11 @@
       <li>Lighter: zero-shot · Darker: fine-tuned</li>
     </ul>
     <div class="chart" id="chart-dumbbell"></div>
-  </div>
-</section>
-
-<!-- ================= FINDINGS ================= -->
-<section class="section" id="findings">
-  <div class="wrap">
-    <p class="section-label">Results</p>
-    <h2>Four things the experiments showed</h2>
-  </div>
-
-  <!-- Finding 1 -->
-  <article class="finding wrap-wide">
-    <div class="finding-text">
-      <span class="finding-number" aria-label="Result 1">01</span>
-      <h3>Off-the-shelf models see the scene but do not know the traffic</h3>
-      <p>With video alone, no zero-shot model reaches the task-specific CLIP+Transformer baseline, and several barely beat always answering "yield". Asking for chain-of-thought reasoning does not help and multiplies latency by ten. Marking the shuttle and the crossing goal in the frames (set-of-marks) does not help either. Low-rank fine-tuning removes the gap for both model families.</p>
-      <p class="muted">Time is per-sample inference latency. Hover a bar for details.</p>
-    </div>
-    <div class="finding-viz">
-      <div class="chart-tools">
-        <div class="seg seg-sm" role="group" aria-label="Metric">
-          <button class="seg-btn is-on" data-metric="acc" data-chart="leader">Accuracy</button>
-          <button class="seg-btn" data-metric="f1" data-chart="leader">Macro F1</button>
-        </div>
-      </div>
-      <div class="chart" id="chart-leader"></div>
-    </div>
-  </article>
-
-  <!-- Finding 2 -->
-  <article class="finding wrap-wide">
-    <div class="finding-text">
-      <span class="finding-number" aria-label="Result 2">02</span>
-      <h3>The models read the clip, not a shortcut</h3>
-      <p>A model could score well here while ignoring the video. So we corrupt the input and hold everything else fixed. For the video-only model, blank or mismatched frames drop accuracy to the majority-class rate, and reversing frame order hurts more than shuffling it: the model reads the <em>direction</em> of motion. For the gaze-guided model, corrupting frames costs little because the context stream carries the signal, and removing that stream at test time costs a lot.</p>
-      <p class="muted">Pick a corruption. Faded marks show the uncorrupted score.</p>
-    </div>
-    <div class="finding-viz">
-      <div class="cf-picker" id="cf-picker" role="group" aria-label="Counterfactual input condition"></div>
-      <div class="cf-strip" id="cf-strip" aria-hidden="true"></div>
-      <div class="chart" id="chart-cf"></div>
-    </div>
-  </article>
-
-  <!-- Finding 3 -->
-  <article class="finding wrap-wide">
-    <div class="finding-text">
-      <span class="finding-number" aria-label="Result 3">03</span>
-      <h3>Gaze is unusable untrained and the best cue once learned</h3>
-      <p>Prompted, gaze direction or on-screen fixations alone lower accuracy below the no-context input, and a single cue only works when ego motion gives it a frame of reference. After fine-tuning, ego motion plus gaze direction is the best model we have, at 0.835 accuracy on unseen participants. That is 14.9% above the baseline in relative terms and 7.7% above the same model fine-tuned on video alone.</p>
-      <p>Vehicle motion, the one cue vehicle-side sensing already provides, adds almost nothing in either regime.</p>
-    </div>
-    <div class="finding-viz">
-      <div class="gain-grid" id="gain-grid"></div>
-    </div>
-  </article>
-
-  <!-- Finding 4 -->
-  <article class="finding wrap-wide">
-    <div class="finding-text">
-      <span class="finding-number" aria-label="Result 4">04</span>
-      <h3>What adaptation costs depends on the run</h3>
-      <p>We re-test every fine-tuned model on MMBench, a general visual-reasoning benchmark unrelated to traffic. Video-only fine-tuning loses a little, evenly. Gaze-guided fine-tuning with the same rank and epochs is a lottery: one seed keeps nearly all of its general ability, one loses some, one loses most. The mean hides this. The seed spread is the result.</p>
-      <p class="muted">Each dot is one training seed, averaged over three MMBench subsamples. Hover a dot.</p>
-    </div>
-    <div class="finding-viz">
-      <ul class="chart-legend" aria-label="Model legend">
-        <li><span class="legend-dot legend-base" aria-hidden="true"></span>Base model</li>
-        <li><span class="legend-dot legend-video" aria-hidden="true"></span>Video only</li>
-        <li><span class="legend-dot legend-context" aria-hidden="true"></span>Ego + gaze</li>
-      </ul>
-      <div class="chart" id="chart-mmb"></div>
-    </div>
-  </article>
+  </details>
 </section>
 
 <!-- ================= IMPLICATIONS ================= -->
-<section class="section section-tone" id="implications">
+<section class="section" id="implications">
   <div class="wrap">
     <p class="section-label">Implications</p>
     <h2>What follows for practice</h2>
@@ -397,7 +368,7 @@
 </section>
 
 <!-- ================= PAPER ================= -->
-<section class="section" id="paper">
+<section class="section section-tone" id="paper">
   <div class="wrap">
     <p class="section-label">Citation</p>
     <h2>BibTeX</h2>

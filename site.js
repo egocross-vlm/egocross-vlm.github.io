@@ -136,17 +136,6 @@
     });
   }
 
-  /* ---------------- viewpoint switcher ---------------- */
-  (function viewpoint() {
-    const fig = $('#viewpoint'), scene = $('.scene', fig);
-    fig.dataset.view = 'ego';
-    $$('.seg-btn', fig).forEach(b => b.addEventListener('click', () => {
-      const v = b.dataset.view;
-      scene.dataset.view = v; fig.dataset.view = v;
-      $$('.seg-btn', fig).forEach(x => { x.classList.toggle('is-on', x === b); x.setAttribute('aria-selected', x === b); });
-    }));
-  })();
-
   /* ---------------- mini frame renderer ---------------- */
   // mode: 'scene' | 'black' | 'noise' | 'empty'; i = frame index (0..7) controls shuttle position; opts.gaze draws a fixation dot; opts.alt recolors (mismatched clip)
   function frameSVG(i, mode, opts = {}) {
@@ -263,6 +252,10 @@
 
   /* ---------------- leaderboard ---------------- */
   function drawLeader(metric) {
+    const bestZS = Math.max(...LEADER.filter(r => r.kind.startsWith('zs')).map(r => r[metric]));
+    const bestFT = Math.max(...LEADER.filter(r => r.kind === 'ft').map(r => r[metric]));
+    const winners = LEADER.filter(r => (r.kind.startsWith('zs') && r[metric] === bestZS) || (r.kind === 'ft' && r[metric] === bestFT));
+    $('#leader-highlights').innerHTML = winners.map(r => `<p class="finding-stat"><strong>${metric === 'acc' ? pct(r.acc) + '%' : fmt(r.f1)}</strong><span>best ${r.kind === 'ft' ? 'fine-tuned' : 'zero-shot'} ${metric === 'acc' ? 'accuracy' : 'macro F1'} · video only<br>${esc(r.m)}</span></p>`).join('');
     const W = 680, L = 210, R = 20, rowH = 22, gapH = 26;
     const dom = [0.3, 0.85];
     const sc = v => L + (v - dom[0]) / (dom[1] - dom[0]) * (W - L - R);
@@ -285,13 +278,15 @@
       if (o.head) { s += `<text x="0" y="${o.y + 12}" font-size="12" font-weight="600" fill="${C.ink}">${esc(o.head)}</text>`; return; }
       const r = o.r, v = r[metric];
       const col = r.kind === 'ft' ? C.video : r.kind === 'base' ? C.ink3 : C.zeroShot;
-      const op = r.kind.startsWith('zs') ? .6 : 1;
+      const best = winners.includes(r);
+      const op = r.kind.startsWith('zs') && !best ? .6 : 1;
       const tipTxt = `<b>${esc(r.m)}</b>${r.p ? ' · ' + esc(r.p) : ''}<br>accuracy ${fmt(r.acc)} · macro F1 ${fmt(r.f1)}${r.t != null ? `<br>${r.t.toFixed(2)} s per sample` : ''}`;
       s += `<g data-tip="${tipTxt.replace(/"/g, '&quot;')}">
-        <rect x="0" y="${o.y}" width="${W}" height="${rowH}" fill="transparent"/>
-        <text x="${L - 10}" y="${o.y + 15}" text-anchor="end" font-size="12.5" fill="${C.ink}">${esc(r.m)}</text>
+        <rect x="0" y="${o.y}" width="${W}" height="${rowH}" fill="${best ? col : 'transparent'}" fill-opacity="${best ? .1 : 1}"/>
+        ${best ? `<rect x="0" y="${o.y}" width="3" height="${rowH}" fill="${col}"/>` : ''}
+        <text x="${L - 10}" y="${o.y + 15}" text-anchor="end" font-size="12.5" font-weight="${best ? 700 : 400}" fill="${C.ink}">${esc(r.m)}</text>
         <rect x="${L}" y="${o.y + 4}" width="${Math.max(0, sc(v) - L)}" height="${rowH - 8}" fill="${col}" opacity="${op}" rx="2"/>
-        <text x="${sc(v) + 6}" y="${o.y + 15}" font-size="11" fill="${C.ink2}" class="mono">${fmt(v)}</text>
+        <text x="${sc(v) + 6}" y="${o.y + 15}" font-size="11" font-weight="${best ? 700 : 400}" fill="${best ? C.ink : C.ink2}" class="mono">${fmt(v)}</text>
         ${r.t != null && r.kind === 'zsp' ? `<text x="${W}" y="${o.y + 15}" font-size="10.5" fill="${C.ink3}" text-anchor="end" class="mono">${r.t.toFixed(1)} s</text>` : ''}
       </g>`;
     });
@@ -336,6 +331,7 @@
   /* ---------------- counterfactual ---------------- */
   (function counterfactual() {
     const picker = $('#cf-picker'), strip = $('#cf-strip'), chart = $('#chart-cf');
+    const legend = $('#cf-legend'), description = $('#cf-description');
     let cur = 'orig';
     CF.forEach(c => {
       const b = document.createElement('button');
@@ -358,14 +354,16 @@
     function render() {
       renderStrip(cur);
       const c = CF.find(x => x.k === cur), o = CF[0];
-      const W = 680, H = 250, L = 40, R = 10, T = 30, B = 58;
+      const W = 860, H = 250, L = 40, R = 190, T = 30, B = 58;
       const dom = [0.4, 0.9];
       const sy = v => T + (1 - (v - dom[0]) / (dom[1] - dom[0])) * (H - T - B);
       const groups = [
-        { k: 'ego', label: 'Fine-tuned on video only', sub: 'ego only', col: C.video },
-        { k: 'ctx', label: 'Fine-tuned with ego motion + gaze direction', sub: 'context given at test time', col: C.context },
-        { k: 'noctx', label: 'Same gaze-guided model', sub: 'context withheld at test time', col: C.context, withheld: true }
+        { k: 'ego', label: 'Video only', sub: 'fine-tuned', col: C.video },
+        { k: 'ctx', label: 'Ego motion + gaze', sub: 'context given at test time', col: C.context },
+        { k: 'noctx', label: 'Ego motion + gaze', sub: 'context withheld at test time', col: C.context, withheld: true }
       ];
+      legend.innerHTML = groups.map(g => `<li><span class="legend-dot" aria-hidden="true" style="background:${g.col};opacity:${g.withheld ? .55 : 1}"></span>${g.label}${g.k === 'ego' ? '' : g.withheld ? ' · context withheld' : ' · context given'}</li>`).join('');
+      description.textContent = c.desc;
       const gw = (W - L - R) / groups.length, bw = 70;
       let s = svgOpen(W, H);
       // gridlines
@@ -373,60 +371,75 @@
         s += `<line x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}" stroke="${C.line}"/>
               <text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end" font-size="11" fill="${C.ink3}" class="mono">${t.toFixed(1)}</text>`;
       });
-      s += `<line x1="${L}" x2="${W - R}" y1="${sy(MAJ.acc)}" y2="${sy(MAJ.acc)}" stroke="${C.ink3}" stroke-dasharray="2 3"/>
-            <text x="${L + 4}" y="${sy(MAJ.acc) - 4}" font-size="10.5" fill="${C.ink3}">always "yield" 0.567</text>`;
       groups.forEach((g, i) => {
         const cx = L + gw * i + gw / 2, v = c[g.k][0], ov = o[g.k][0];
         const fill = g.col;
         s += `<g data-tip="<b>${esc(g.label)}</b><br>${esc(g.sub)}<br>${esc(c.label)}: accuracy ${fmt(c[g.k][0])} · macro F1 ${fmt(c[g.k][1])}<br>original: ${fmt(o[g.k][0])}">
           <rect x="${cx - bw / 2}" y="${sy(ov)}" width="${bw}" height="${sy(dom[0]) - sy(ov)}" fill="${g.col}" opacity=".15" rx="2"/>
           <rect class="cf-bar" x="${cx - bw / 2}" y="${sy(v)}" width="${bw}" height="${sy(dom[0]) - sy(v)}" fill="${fill}" fill-opacity="${g.withheld ? .55 : 1}" rx="2"/>
+          <line x1="${cx - bw / 2 - 5}" x2="${cx + bw / 2 + 5}" y1="${sy(ov)}" y2="${sy(ov)}" stroke="#fff" stroke-width="4"/>
+          <line x1="${cx - bw / 2 - 5}" x2="${cx + bw / 2 + 5}" y1="${sy(ov)}" y2="${sy(ov)}" stroke="${g.col}" stroke-width="2"/>
           <text x="${cx}" y="${sy(v) - 7}" text-anchor="middle" font-size="13" font-weight="600" fill="${C.ink}" class="mono">${fmt(v)}</text>
           ${cur !== 'orig' ? `<text x="${cx}" y="${sy(v) - 22}" text-anchor="middle" font-size="10.5" fill="${C.ink3}" class="mono">${((v - ov) * 100 >= 0 ? '+' : '') + ((v - ov) * 100).toFixed(1)} pts</text>` : ''}
           <text x="${cx}" y="${H - B + 20}" text-anchor="middle" font-size="12" fill="${C.ink}">${esc(g.label.length > 30 ? g.label.replace('Fine-tuned with ', '') : g.label)}</text>
           <text x="${cx}" y="${H - B + 35}" text-anchor="middle" font-size="11" fill="${C.ink3}">${esc(g.sub)}</text>
         </g>`;
       });
-      // Draw over the bars so the reference remains visible for every condition.
+      // Both reference lines remain above the bars in every condition.
       s += `<line x1="${L}" x2="${W - R}" y1="${sy(BASE.acc)}" y2="${sy(BASE.acc)}" stroke="${C.ink}" stroke-width="1.5" stroke-dasharray="6 4"/>
-            <line x1="${L}" x2="${L + 24}" y1="12" y2="12" stroke="${C.ink}" stroke-width="1.5" stroke-dasharray="6 4"/>
-            <text x="${L + 32}" y="16" font-size="11" fill="${C.ink2}">Task-specific baseline (CLIP+Transformer): ${fmt(BASE.acc)}</text>`;
-      s += `<text x="${L}" y="${H - 4}" font-size="11" fill="${C.ink3}">${esc(c.desc)}</text>`;
+            <line x1="${L}" x2="${W - R}" y1="${sy(MAJ.acc)}" y2="${sy(MAJ.acc)}" stroke="${C.ink2}" stroke-width="1.5" stroke-dasharray="2 3"/>
+            <text x="${W - 8}" y="${sy(BASE.acc)}" dominant-baseline="middle" text-anchor="end" font-size="11" fill="${C.ink}">CLIP+Transformer: ${fmt(BASE.acc)}</text>
+            <text x="${W - 8}" y="${sy(MAJ.acc)}" dominant-baseline="middle" text-anchor="end" font-size="11" fill="${C.ink2}">Always “yield”: ${fmt(MAJ.acc)}</text>`;
       s += '</svg>';
       chart.innerHTML = s; bindTips(chart);
     }
     render();
   })();
 
-  /* ---------------- gain grid (finding 3) ---------------- */
+  /* ---------------- gain panels (finding 2) ---------------- */
   (function gains() {
     const g = $('#gain-grid');
-    const none = CTX['none'], ego = CTX['ego'];
+    const none = CTX['none'];
     const cards = [
       { k: 'ego', title: 'Ego motion', rows: [
         ['Prompted', CTX['ego'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned', CTX['ego'].ft[0] - none.ft[0]]] },
       { k: 'veh', title: 'Vehicle motion', rows: [
         ['Prompted', CTX['veh'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned', CTX['veh'].ft[0] - none.ft[0]],
-        ['Prompted, with ego', CTX['ego+veh'].zsGaze[0] - ego.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+veh'].ft[0] - ego.ft[0]]] },
+        ['Prompted, with ego', CTX['ego+veh'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+veh'].ft[0] - none.ft[0]]] },
       { k: 'gdir', title: 'Gaze direction', best: true, rows: [
         ['Prompted', CTX['gdir'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned', CTX['gdir'].ft[0] - none.ft[0]],
-        ['Prompted, with ego', CTX['ego+gdir'].zsGaze[0] - ego.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+gdir'].ft[0] - ego.ft[0]]] },
+        ['Prompted, with ego', CTX['ego+gdir'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+gdir'].ft[0] - none.ft[0]]] },
       { k: 'gscr', title: 'Gaze on screen', rows: [
         ['Prompted', CTX['gscr'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned', CTX['gscr'].ft[0] - none.ft[0]],
-        ['Prompted, with ego', CTX['ego+gscr'].zsGaze[0] - ego.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+gscr'].ft[0] - ego.ft[0]]] }
+        ['Prompted, with ego', CTX['ego+gscr'].zsGaze[0] - none.zsGaze[0]], ['Fine-tuned, with ego', CTX['ego+gscr'].ft[0] - none.ft[0]]] }
     ];
     const NEG = 3, POS = 7, ZERO = 30; // percent layout: -3 pts at 0%, 0 at 30%, +7 at 100%
     const px = d => d < 0 ? ZERO - Math.min(3, -d) / NEG * ZERO : ZERO;
     const pw = d => Math.min(Math.abs(d), d < 0 ? NEG : POS) / (d < 0 ? NEG : POS) * (d < 0 ? ZERO : 100 - ZERO);
-    g.innerHTML = cards.map(c => `
-      <div class="gain${c.best ? ' is-best' : ''}">
-        <div class="gain-k">${c.title}</div>
-        ${c.rows.map(([lab, d]) => { const pts = d * 100; return `
-          <div class="gain-row"><span>${lab}</span>
-            <div class="gain-bar"><span class="zero"></span><i class="${pts < 0 ? 'neg' : 'pos'}" style="left:${px(pts)}%;width:${pw(pts)}%"></i></div>
-            <b>${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</b></div>`; }).join('')}
-      </div>`).join('') +
-      `<p class="muted" style="grid-column:1/-1;margin:0;font-size:var(--text-small)">Change in accuracy points relative to the same regime without that cue ("with ego" compares against ego motion alone). Zero-shot rows use Qwen2.5-VL-7B, fine-tuned rows Qwen3-VL-2B, all on gaze-overlaid frames.</p>`;
+    const regimes = [
+      { label: 'Prompted', title: 'Zero-shot', model: 'Qwen2.5-VL-7B', baseline: none.zsGaze[0] },
+      { label: 'Fine-tuned', title: 'Fine-tuned', model: 'Qwen3-VL-2B', baseline: none.ft[0] }
+    ];
+    regimes.forEach(regime => {
+      regime.bestGain = Math.max(...cards.flatMap(c => c.rows)
+        .filter(([lab]) => lab === regime.label || lab === regime.label + ', with ego')
+        .map(([, gain]) => gain));
+    });
+    g.innerHTML = regimes.map(regime => `
+      <section class="gain-panel" aria-label="${regime.title} cue gains">
+        <header class="gain-panel-head"><h4>${regime.title}</h4><p>${regime.model}</p><p>No-context accuracy: ${pct(regime.baseline)}%</p></header>
+        ${cards.map(c => `<div class="gain">
+          <div class="gain-k">${c.title}</div>
+          ${c.rows.filter(([lab]) => lab === regime.label || lab === regime.label + ', with ego').map(([lab, d]) => {
+            const pts = d * 100;
+            const label = lab.endsWith(', with ego') ? 'Ego + cue' : 'Cue alone';
+            return `<div class="gain-row${d === regime.bestGain ? ' is-best' : ''}"><span>${label}</span>
+              <div class="gain-bar" aria-hidden="true"><span class="zero"></span><i class="${pts > 0 ? 'pos' : 'neg'}" style="left:${px(pts)}%;width:${pw(pts)}%"></i></div>
+              <b>${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</b></div>`;
+          }).join('')}
+        </div>`).join('')}
+      </section>`).join('');
+
   })();
 
   /* ---------------- MMBench dot strip ---------------- */
